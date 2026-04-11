@@ -18,8 +18,8 @@ CDevice::CDevice()
   #ifdef RELAY
   tRelayClick = 0;
   pinMode(RELAY_PIN, OUTPUT);
-  digitalWrite(RELAY_PIN, HIGH); // normally HIGH (relay closed)
-  Log.infoln(F("Relay pin %d initialized HIGH"), RELAY_PIN);
+  digitalWrite(RELAY_PIN, LOW); // normally LOW (relay open)
+  Log.infoln(F("Relay pin %d initialized LOW"), RELAY_PIN);
   #endif
 
   #ifdef CONFIG_IDF_TARGET_ESP32C3
@@ -159,9 +159,9 @@ void CDevice::loop() {
 
   #ifdef RELAY
   if (tRelayClick > 0 && millis() - tRelayClick >= RELAY_CLICK_DURATION_MS) {
-    digitalWrite(RELAY_PIN, HIGH);
+    digitalWrite(RELAY_PIN, LOW);
     tRelayClick = 0;
-    Log.infoln(F("Relay restored HIGH"));
+    Log.infoln(F("Relay restored LOW"));
   }
   #endif
 
@@ -336,8 +336,8 @@ uint16_t CDevice::getVoltageADC(bool *current) {
 
 #ifdef RELAY
 void CDevice::clickRelay() {
-  Log.infoln(F("Relay click: going LOW for %ums"), RELAY_CLICK_DURATION_MS);
-  digitalWrite(RELAY_PIN, LOW);
+  Log.infoln(F("Relay click: going HIGH for %ums"), RELAY_CLICK_DURATION_MS);
+  digitalWrite(RELAY_PIN, HIGH);
   tRelayClick = millis();
 }
 #endif
@@ -374,7 +374,7 @@ JsonDocument& CDevice::getDeviceSettings() {
   jsonDeviceSettings["ledEnabled"] = configuration.ledEnabled;
 
   #ifdef RELAY
-  jsonDeviceSettings["relayState"] = (tRelayClick > 0) ? "LOW" : "HIGH";
+  jsonDeviceSettings["relayState"] = (tRelayClick > 0) ? "HIGH" : "LOW";
   jsonDeviceSettings["relayPin"] = RELAY_PIN;
   #endif
 
