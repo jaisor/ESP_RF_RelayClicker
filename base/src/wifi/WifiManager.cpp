@@ -475,10 +475,6 @@ void CWifiManager::handleDevice(AsyncWebServerRequest *request) {
     Log.infoln("Device req name: %s", deviceName);
     Log.infoln("Device size %i name: %s", sizeof(configuration.name), configuration.name);
 
-    uint16_t deepSleepDurationSec = atoi(request->arg("deepSleepDuration").c_str()) * 60;
-    configuration.deepSleepDurationSec = deepSleepDurationSec;
-    Log.infoln("deepSleepDurationSec : %u", deepSleepDurationSec);
-
     String mqttServer = request->arg("mqttServer");
     mqttServer.toCharArray(configuration.mqttServer, sizeof(configuration.mqttServer));
     Log.infoln("MQTT Server: %s", mqttServer);
@@ -491,6 +487,15 @@ void CWifiManager::handleDevice(AsyncWebServerRequest *request) {
     mqttTopic.toCharArray(configuration.mqttTopic, sizeof(configuration.mqttTopic));
     Log.infoln("MQTT Topic: %s", mqttTopic);
 
+    #ifdef RF24_RADIO
+    configuration.rf24_channel = atoi(request->arg("rf24Channel").c_str());
+    configuration.rf24_data_rate = atoi(request->arg("rf24DataRate").c_str());
+    configuration.rf24_pa_level = atoi(request->arg("rf24PaLevel").c_str());
+    Log.infoln("RF24 Channel: %u", configuration.rf24_channel);
+    Log.infoln("RF24 Data Rate: %u", configuration.rf24_data_rate);
+    Log.infoln("RF24 PA Level: %u", configuration.rf24_pa_level);
+    #endif
+
     EEPROM_saveConfig();
     
     request->redirect("device");
@@ -498,12 +503,38 @@ void CWifiManager::handleDevice(AsyncWebServerRequest *request) {
     rebootNeeded = true;
   } else {
 
-    uint16_t sleepMin = (uint16_t)(configuration.deepSleepDurationSec / 60);
     AsyncResponseStream *response = request->beginResponseStream("text/html; charset=UTF-8");
     printHTMLTop(response);
+    #ifdef RF24_RADIO
+    char rf24DataRate[256];
+    snprintf_P(rf24DataRate, sizeof(rf24DataRate), PSTR("\
+      <option %s value='0'>1 Mbps</option>\
+      <option %s value='1'>2 Mbps</option>\
+      <option %s value='2'>250 Kbps</option>"),
+      configuration.rf24_data_rate == 0 ? "selected" : "",
+      configuration.rf24_data_rate == 1 ? "selected" : "",
+      configuration.rf24_data_rate == 2 ? "selected" : ""
+    );
+    char rf24PaLevel[256];
+    snprintf_P(rf24PaLevel, sizeof(rf24PaLevel), PSTR("\
+      <option %s value='0'>MIN (-18 dBm)</option>\
+      <option %s value='1'>LOW (-12 dBm)</option>\
+      <option %s value='2'>HIGH (-6 dBm)</option>\
+      <option %s value='3'>MAX (0 dBm)</option>"),
+      configuration.rf24_pa_level == 0 ? "selected" : "",
+      configuration.rf24_pa_level == 1 ? "selected" : "",
+      configuration.rf24_pa_level == 2 ? "selected" : "",
+      configuration.rf24_pa_level == 3 ? "selected" : ""
+    );
     response->printf_P(htmlDevice, configuration.ledEnabled ? "checked" : "",
-      configuration.name, sleepMin, sleepMin,
+      configuration.name,
+      configuration.mqttServer, configuration.mqttPort, configuration.mqttTopic,
+      configuration.rf24_channel, rf24DataRate, rf24PaLevel);
+    #else
+    response->printf_P(htmlDevice, configuration.ledEnabled ? "checked" : "",
+      configuration.name,
       configuration.mqttServer, configuration.mqttPort, configuration.mqttTopic);
+    #endif
     printHTMLBottom(response);
     request->send(response);
   }
@@ -865,11 +896,6 @@ bool CWifiManager::updateConfigFromJson(JsonDocument jsonObj) {
   if (!jsonObj["mqttTopic"].isNull()) {
     Log.traceln("Setting 'mqttTopic' to %s", jsonObj["mqttTopic"].as<const char*>());
     strncpy(configuration.mqttTopic, jsonObj["mqttTopic"].as<const char*>(), 64);
-  }
-
-  if (!jsonObj["deepSleepDurationSec"].isNull()) {
-    Log.traceln("Setting 'deepSleepDurationSec' to %s", jsonObj["deepSleepDurationSec"].as<unsigned short>());
-    configuration.deepSleepDurationSec = jsonObj["deepSleepDurationSec"].as<unsigned short>();
   }
 
   #ifdef TEMP_SENSOR

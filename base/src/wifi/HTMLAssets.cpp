@@ -200,6 +200,7 @@ const char htmlSensor[] PROGMEM = R"=====(
 )=====";
 #endif
 
+#ifdef RF24_RADIO
 const char htmlDevice[] PROGMEM = R"=====(
       <h3>Device Settings</h3>
       <form method='POST' action='device' enctype='application/x-www-form-urlencoded' delay='8000'>
@@ -214,12 +215,52 @@ const char htmlDevice[] PROGMEM = R"=====(
             Device name
             <input type='text' id='deviceName' name='deviceName' value='%s'>
           </label>
+          <label>MQTT server
+            <input type='text' id='mqttServer' name='mqttServer' value='%s'>
+          </label>
+          <label>MQTT port
+            <input type='text' id='mqttPort' name='mqttPort' value='%u'>
+          </label>
           <label>
-            Sleep interval <kbd><output id='sleepOutputId'>%i</output> minutes</kbd>
-            <input type='range' id='deepSleepDuration' name='deepSleepDuration' value='%i' min='0' max='60' step='1' oninput='sleepOutputId.value = deepSleepDuration.value'><br/>
-            <sub><small><i>0 minutes</i> disables sleep, allowing web access any time</small></sub>
+            MQTT topic
+            <input type='text' id='mqttTopic' name='mqttTopic' value='%s'>
           </label>
           <br/>
+          <label>
+            RF24 Channel (0-125)
+            <input type='number' id='rf24Channel' name='rf24Channel' min='0' max='125' value='%u'>
+          </label>
+          <label>
+            RF24 Data Rate
+            <select name='rf24DataRate' id='rf24DataRate'>
+              %s
+            </select>
+          </label>
+          <label>
+            RF24 PA Level
+            <select name='rf24PaLevel' id='rf24PaLevel'>
+              %s
+            </select>
+          </label>
+        </fieldset>
+        <button type='submit' value='Submit'>Submit...</button>
+      </form>
+)=====";
+#else
+const char htmlDevice[] PROGMEM = R"=====(
+      <h3>Device Settings</h3>
+      <form method='POST' action='device' enctype='application/x-www-form-urlencoded' delay='8000'>
+        <fieldset>
+          <label>
+            LED enabled
+            <input name='ledEnabled' id='ledEnabled' type='checkbox' role='switch' %s /><br/>
+            <sub><small>disable to reduce light noise in bedrooms</small></sub>
+          </label>
+          <br/>
+          <label>
+            Device name
+            <input type='text' id='deviceName' name='deviceName' value='%s'>
+          </label>
           <label>MQTT server
             <input type='text' id='mqttServer' name='mqttServer' value='%s'>
           </label>
@@ -234,6 +275,7 @@ const char htmlDevice[] PROGMEM = R"=====(
         <button type='submit' value='Submit'>Submit...</button>
       </form>
 )=====";
+#endif
 
 const char htmlMain[] PROGMEM = R"=====(
       <article>

@@ -5,8 +5,7 @@
 #include "RF24Manager.h"
 #include "Configuration.h"
 
-// Reading pipe address - both transmitter and receiver must use the same pipe address
-static const uint64_t RF24_PIPE_ADDRESS = 0xE8E8F0F0E1LL;
+static const uint8_t maxMessageSize = 32;
 
 CRF24Manager::CRF24Manager() {
   radio = new RF24(RF24_CE_PIN, RF24_CSN_PIN);
@@ -16,13 +15,20 @@ CRF24Manager::CRF24Manager() {
     return;
   }
 
-  radio->setPALevel(RF24_PA_LOW);
-  radio->setPayloadSize(RF24_PAYLOAD_SIZE);
-  radio->openReadingPipe(1, RF24_PIPE_ADDRESS);
+  radio->setAddressWidth(5);
+  radio->setDataRate((rf24_datarate_e)configuration.rf24_data_rate);
+  radio->setPALevel(configuration.rf24_pa_level);
+  radio->setChannel(configuration.rf24_channel);
+  radio->setPayloadSize(maxMessageSize);
+  for (uint8_t i=0; i<6; i++) {
+    char a[6];
+    snprintf_P(a, 6, "%i%s", i, configuration.rf24_pipe_suffix);
+    Log.noticeln("Opening reading pipe %i on address '%s'", i, a);
+    radio->openReadingPipe(i, (uint8_t*)a);
+  }
+  radio->setRetries(15, 15);
+  radio->setAutoAck(false);
   radio->startListening();
-
-  Log.infoln(F("RF24: listening on pipe 0x%llX, CE=%d, CSN=%d"),
-             RF24_PIPE_ADDRESS, RF24_CE_PIN, RF24_CSN_PIN);
 }
 
 CRF24Manager::~CRF24Manager() {

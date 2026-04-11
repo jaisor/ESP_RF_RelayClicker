@@ -350,7 +350,6 @@ JsonDocument& CDevice::getDeviceSettings() {
 
   jsonDeviceSettings["ledEnabled"] = configuration.ledEnabled;
 
-  jsonDeviceSettings["deepSleepDurationSec"] = configuration.deepSleepDurationSec;
   #ifdef VOLTAGE_SENSOR
   jsonDeviceSettings["voltageDivider"] = configuration.voltageDivider;
   #endif

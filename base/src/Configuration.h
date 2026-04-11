@@ -29,9 +29,9 @@
 #define FACTORY_RESET_CLEAR_TIMER_MS 2000   // Clear factory reset counter when elapsed, considered smooth boot
 
 #if defined(ESP32)
-  #define DEVICE_NAME "ESP32CLSEN"
+  #define DEVICE_NAME "ESP32RFRLY"
 #elif defined(ESP8266)
-  #define DEVICE_NAME "ESP8266CLSEN"
+  #define DEVICE_NAME "ESP8266RFRLY"
 #endif
 
 #define WIFI
@@ -97,6 +97,10 @@
     #define RF24_CE_PIN  D4
     #define RF24_CSN_PIN D8
   #endif
+  #define RF24_CHANNEL 76
+  #define RF24_DATA_RATE RF24_250KBPS
+  #define RF24_PA_LEVEL RF24_PA_HIGH
+  #define RF24_PIPE_SUFFIX "RFRLY"
 #endif
 
 //#define OLED
@@ -112,9 +116,6 @@
   #define INTERNAL_LED_PIN LED_BUILTIN
 #endif
 
-
-#define DEEP_SLEEP_INTERVAL_SEC 300 // 5 min
-#define DEEP_SLEEP_MIN_AWAKE_MS 5000 // Minimum time to remain awake after smooth boot
 
 #if defined(TEMP_SENSOR)
   struct sensorCorrection {
@@ -150,6 +151,14 @@ struct configuration_t {
     char mqttTopic[128];
   #endif
 
+  #ifdef RF24_RADIO
+    uint8_t rf24_channel;
+    uint8_t rf24_data_rate;
+    uint8_t rf24_pa_level;
+    char rf24_pipe_suffix[5];
+    char rf24_pipe_mqttTopic[6][128];
+  #endif
+
   char name[128];
   #ifdef VOLTAGE_SENSOR
     float voltageDivider;
@@ -162,7 +171,6 @@ struct configuration_t {
   #endif
 
   uint8_t ledEnabled;
-  uint16_t deepSleepDurationSec; // 0 - deep sleep disabled, stay awake
 
   char _loaded[7]; // used to check if EEPROM was correctly set
 };

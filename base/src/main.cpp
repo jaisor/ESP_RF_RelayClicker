@@ -25,47 +25,11 @@ CRF24Manager *rf24Manager;
 
 unsigned long tsSmoothBoot;
 bool smoothBoot;
-unsigned long tsMillisBooted;
-
-void goToSleep() {
-  WiFi.disconnect();
-  // WiFi.forceSleepBegin((uint64_t)configuration.deepSleepDurationSec * 1e6);
-
-  #ifdef ESP32
-    digitalWrite(INTERNAL_LED_PIN, LOW);
-    SPI.end();  //remove if not using SPI
-    Wire.end(); //remove if not using I2C
-    pinMode(SS, INPUT_PULLUP );
-    pinMode(6, INPUT_PULLUP );
-    pinMode(4, INPUT_PULLUP );
-    pinMode(8, INPUT_PULLUP );
-    pinMode(9, INPUT_PULLUP );
-    pinMode(1, INPUT_PULLUP );
-    pinMode(2, INPUT_PULLUP );
-    pinMode(3, INPUT_PULLUP );
-    pinMode(0, INPUT_PULLUP );
-    pinMode(5, INPUT_PULLUP );
-    #ifdef CONFIG_IDF_TARGET_ESP32C3
-      esp_sleep_enable_timer_wakeup((uint64_t)configuration.deepSleepDurationSec * 1e6);
-      delay(1);
-      esp_deep_sleep_start();
-    #else
-      ESP.deepSleep((uint64_t)configuration.deepSleepDurationSec * 1e6);
-    #endif
-  #elif ESP8266
-    digitalWrite(INTERNAL_LED_PIN, HIGH);
-    ESP.deepSleep((uint64_t)configuration.deepSleepDurationSec * 1e6); 
-  #endif
-  delay(1000);
-}
 
 void setup() {
 
   randomSeed(analogRead(0));
   
-  #ifdef ESP8266
-    pinMode(D0, WAKEUP_PULLUP);
-  #endif
   pinMode(INTERNAL_LED_PIN, OUTPUT);
   intLEDOn();
 
@@ -120,11 +84,7 @@ void loop() {
   if (!smoothBoot && millis() - tsSmoothBoot > FACTORY_RESET_CLEAR_TIMER_MS) {
     smoothBoot = true;
     EEPROM_clearFactoryReset();
-    tsMillisBooted = millis();
-    if (configuration.deepSleepDurationSec == 0) {
-      // Keep the LED on if expected to sleep
-      intLEDOff();
-    }  
+    intLEDOff();
     Log.noticeln("Device booted smoothly!");
   }
 
@@ -144,30 +104,6 @@ void loop() {
 
   if (wifiManager->isRebootNeeded()) {
     return;
-  }
-
-  // Conditions for deep sleep:
-  // - Min time elapsed since smooth boot (to catch up on any MQTT messages)
-  // - Smooth boot
-  // - Wifi not in AP mode
-  // - Succesfully submitted 1 sensor reading over MQTT
-  if (smoothBoot 
-    && configuration.deepSleepDurationSec > 0 
-    && millis() - tsMillisBooted > DEEP_SLEEP_MIN_AWAKE_MS
-    && wifiManager->isJobDone() ) {
-      delay(100);
-      intLEDOff();
-      Log.noticeln("Initiating deep sleep for %u sec", configuration.deepSleepDurationSec );
-      goToSleep();
-  }
-
-  if (configuration.deepSleepDurationSec > 0 && device->getUptime() > configuration.deepSleepDurationSec * 1000) {
-    Log.noticeln("Device is not sleeping right, resetting to save battery");
-    #ifdef ESP32
-      ESP.restart();
-    #elif ESP8266
-      ESP.reset();
-    #endif
   }
  
   yield();
