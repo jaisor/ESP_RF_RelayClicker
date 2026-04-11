@@ -277,6 +277,45 @@ const char htmlDevice[] PROGMEM = R"=====(
 )=====";
 #endif
 
+#ifdef RELAY
+const char htmlMain[] PROGMEM = R"=====(
+      <article>
+        <header class="grid">
+          <h1>🌡️ Temperature</h1>
+          <h1 style="text-align: right;"><kbd>%0.2f°%s</kbd></h1>
+        </header>
+        <p>
+          Graph goes here
+        </p>
+      </article>
+      <article>
+        <header class="grid">
+          <h1>💧 Humidity</h1>
+          <h1 style="text-align: right;"><kbd>%0.2f%%</kbd></h1>
+        </header>
+        <p>
+          Graph goes here
+        </p>
+      </article>
+      <article>
+        <header><h1>🔌 Relay</h1></header>
+        <button id="relayBtn" onclick="clickRelay(this)">Click Relay</button>
+        <script>
+          function clickRelay(btn) {
+            btn.setAttribute('disabled', '');
+            btn.setAttribute('aria-busy', 'true');
+            fetch('relay_click', { method: 'POST' })
+              .finally(function() {
+                setTimeout(function() {
+                  btn.removeAttribute('disabled');
+                  btn.removeAttribute('aria-busy');
+                }, %u);
+              });
+          }
+        </script>
+      </article>
+)=====";
+#else
 const char htmlMain[] PROGMEM = R"=====(
       <article>
         <header class="grid">
@@ -297,6 +336,7 @@ const char htmlMain[] PROGMEM = R"=====(
         </p>
       </article>
 )=====";
+#endif
 
 const char cssPico[] PROGMEM = R"=====(
 @charset "UTF-8";/*!

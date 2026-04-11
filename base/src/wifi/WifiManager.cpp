@@ -139,6 +139,9 @@ void CWifiManager::listen() {
   server->on("/sensor", HTTP_GET | HTTP_POST, (ArRequestHandlerFunction)std::bind(&CWifiManager::handleSensor, this, std::placeholders::_1));
   server->on("/device", HTTP_GET | HTTP_POST, (ArRequestHandlerFunction)std::bind(&CWifiManager::handleDevice, this, std::placeholders::_1));
   //
+#ifdef RELAY
+  server->on("/relay_click", HTTP_POST, (ArRequestHandlerFunction)std::bind(&CWifiManager::handleRelayClick, this, std::placeholders::_1));
+#endif
   server->on("/factory_reset", HTTP_POST, (ArRequestHandlerFunction)std::bind(&CWifiManager::handleFactoryReset, this, std::placeholders::_1));
   server->on("/reboot", HTTP_POST, (ArRequestHandlerFunction)std::bind(&CWifiManager::handleReboot, this, std::placeholders::_1));
   server->on("/mqtt_reconnect", HTTP_POST, (ArRequestHandlerFunction)std::bind(&CWifiManager::handleFixMQTT, this, std::placeholders::_1));
@@ -541,6 +544,19 @@ void CWifiManager::handleDevice(AsyncWebServerRequest *request) {
   intLEDOff();
 }
 
+#ifdef RELAY
+void CWifiManager::handleRelayClick(AsyncWebServerRequest *request) {
+  Log.traceln("handleRelayClick");
+  intLEDOn();
+  sensorProvider->clickRelay();
+  AsyncResponseStream *response = request->beginResponseStream("text/plain; charset=UTF-8");
+  response->setCode(200);
+  response->print("OK");
+  request->send(response);
+  intLEDOff();
+}
+#endif
+
 void CWifiManager::handleFactoryReset(AsyncWebServerRequest *request) {
   Log.traceln("handleFactoryReset");
   intLEDOn();
@@ -859,9 +875,17 @@ void CWifiManager::printHTMLMain(Print *p) {
   t = correctT(t);
   h = correctH(h);
 
+#ifdef RELAY
+  p->printf_P(htmlMain, t, configuration.tempUnit == TEMP_UNIT_CELSIUS ? "C" : "F", h, (unsigned)RELAY_CLICK_DURATION_MS);
+#else
   p->printf_P(htmlMain, t, configuration.tempUnit == TEMP_UNIT_CELSIUS ? "C" : "F", h);
+#endif
+#else
+#ifdef RELAY
+  p->printf_P(htmlMain, 0, "", 0, (unsigned)RELAY_CLICK_DURATION_MS);
 #else
   p->printf_P(htmlMain, 0, "", 0);
+#endif
 #endif
 }
 

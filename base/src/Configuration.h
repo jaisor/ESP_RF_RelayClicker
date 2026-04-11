@@ -103,6 +103,16 @@
   #define RF24_PIPE_SUFFIX "RFRLY"
 #endif
 
+#define RELAY
+#ifdef RELAY
+  #if defined(ESP8266)
+    #define RELAY_PIN D1  // GPIO5 - available data pin
+  #elif defined(ESP32) || defined(CONFIG_IDF_TARGET_ESP32C3)
+    #define RELAY_PIN 5
+  #endif
+  #define RELAY_CLICK_DURATION_MS 500
+#endif
+
 //#define OLED
 #ifdef OLED
   #define OLED_SCREEN_WIDTH 72 // OLED display width, in pixels

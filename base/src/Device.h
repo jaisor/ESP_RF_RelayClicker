@@ -29,7 +29,8 @@ public:
   void loop();
 
   virtual bool isSensorReady() { return sensorReady; };
-  
+  virtual void clickRelay();
+
   #ifdef TEMP_SENSOR
   virtual float getTemperature(bool *current);
   virtual float getHumidity(bool *current);
@@ -54,7 +55,11 @@ private:
   bool sensorReady;
 
   JsonDocument jsonDeviceSettings;
-  
+
+  #ifdef RELAY
+  unsigned long tRelayClick;
+  #endif
+
   float temperature, humidity, baro_pressure;
 
   // TEMP_SENSOR_DS18B20

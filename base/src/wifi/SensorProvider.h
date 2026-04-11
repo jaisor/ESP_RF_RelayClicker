@@ -13,6 +13,7 @@ public:
   virtual uint32_t getDeviceId() { return CONFIG_getDeviceId(); };
   virtual uint32_t getUptime() { return CONFIG_getUpTime(); };
   virtual bool isSensorReady() { return false; };
+  virtual void clickRelay() {};
   virtual JsonDocument& getDeviceSettings();
   virtual bool setDeviceSettings(JsonDocument ac);
 };

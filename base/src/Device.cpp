@@ -15,6 +15,13 @@ CDevice::CDevice()
   tMillisTemp = millis();
   sensorReady = false;
 
+  #ifdef RELAY
+  tRelayClick = 0;
+  pinMode(RELAY_PIN, OUTPUT);
+  digitalWrite(RELAY_PIN, HIGH); // normally HIGH (relay closed)
+  Log.infoln(F("Relay pin %d initialized HIGH"), RELAY_PIN);
+  #endif
+
   #ifdef CONFIG_IDF_TARGET_ESP32C3
     if (configuration.tempSensor!=TEMP_SENSOR_DS18B20) {
       // ESP32C3 uses GPIO 6,7 for SDA,SCL - see https://wiki.seeedstudio.com/XIAO_ESP32C3_Getting_Started/
@@ -149,6 +156,14 @@ CDevice::~CDevice() {
 }
 
 void CDevice::loop() {
+
+  #ifdef RELAY
+  if (tRelayClick > 0 && millis() - tRelayClick >= RELAY_CLICK_DURATION_MS) {
+    digitalWrite(RELAY_PIN, HIGH);
+    tRelayClick = 0;
+    Log.infoln(F("Relay restored HIGH"));
+  }
+  #endif
 
   #ifdef VOLTAGE_SENSOR
   if (millis() - voltageSensorDelay > 50 || voltageValues.size() < VOLTAGE_SAMPLES) {
@@ -319,6 +334,14 @@ uint16_t CDevice::getVoltageADC(bool *current) {
 }
 #endif
 
+#ifdef RELAY
+void CDevice::clickRelay() {
+  Log.infoln(F("Relay click: going LOW for %ums"), RELAY_CLICK_DURATION_MS);
+  digitalWrite(RELAY_PIN, LOW);
+  tRelayClick = millis();
+}
+#endif
+
 JsonDocument& CDevice::getDeviceSettings() {
 
   jsonDeviceSettings["name"] = configuration.name;
@@ -349,6 +372,11 @@ JsonDocument& CDevice::getDeviceSettings() {
   #endif
 
   jsonDeviceSettings["ledEnabled"] = configuration.ledEnabled;
+
+  #ifdef RELAY
+  jsonDeviceSettings["relayState"] = (tRelayClick > 0) ? "LOW" : "HIGH";
+  jsonDeviceSettings["relayPin"] = RELAY_PIN;
+  #endif
 
   #ifdef VOLTAGE_SENSOR
   jsonDeviceSettings["voltageDivider"] = configuration.voltageDivider;

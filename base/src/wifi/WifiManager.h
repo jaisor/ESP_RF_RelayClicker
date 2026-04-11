@@ -53,6 +53,9 @@ private:
   void handleSensor(AsyncWebServerRequest *request);
   void handleDevice(AsyncWebServerRequest *request);
   void handleFactoryReset(AsyncWebServerRequest *request);
+#ifdef RELAY
+  void handleRelayClick(AsyncWebServerRequest *request);
+#endif
   void handleReboot(AsyncWebServerRequest *request);
   void handleFixMQTT(AsyncWebServerRequest *request);
   void handleStyleCSS(AsyncWebServerRequest *request);
