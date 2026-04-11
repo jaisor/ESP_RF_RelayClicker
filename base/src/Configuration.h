@@ -100,7 +100,7 @@
   #define RF24_CHANNEL 76
   #define RF24_DATA_RATE RF24_250KBPS
   #define RF24_PA_LEVEL RF24_PA_HIGH
-  #define RF24_PIPE_SUFFIX "RFRLY"
+  #define RF24_PIPE_SUFFIX "RFCL"
 #endif
 
 #define RELAY

@@ -203,6 +203,13 @@ void CWifiManager::listen() {
       bool r = mqtt.subscribe(mqttSubcribeTopicConfig);
       Log.noticeln("Subscribed for config changes to MQTT topic '%s' success = %T", mqttSubcribeTopicConfig, r);
 
+#ifdef RELAY
+      sprintf_P(mqttSubcribeTopicRelay, "%s/%u/relay/set", configuration.mqttTopic, CONFIG_getDeviceId());
+      bool rr = mqtt.subscribe(mqttSubcribeTopicRelay);
+      Log.noticeln("Subscribed for relay commands to MQTT topic '%s' success = %T", mqttSubcribeTopicRelay, rr);
+      publishHADiscovery();
+#endif
+
       postSensorUpdate();
     } else {
       Log.warningln("MQTT connect failed, rc=%i", mqtt.state());
@@ -814,6 +821,15 @@ void CWifiManager::mqttCallback(char *topic, uint8_t *payload, unsigned int leng
   }
 
   Log.verboseln("Received %u bytes message on MQTT topic '%s'", length, topic);
+
+#ifdef RELAY
+  if (!strcmp(topic, mqttSubcribeTopicRelay)) {
+    Log.noticeln("Relay click triggered via MQTT");
+    sensorProvider->clickRelay();
+    return;
+  }
+#endif
+
   if (!strcmp(topic, mqttSubcribeTopicConfig)) {
     DeserializationError de = deserializeJson(configJson, (const byte*)payload, length);
     if (de) {
@@ -876,18 +892,47 @@ void CWifiManager::printHTMLMain(Print *p) {
   h = correctH(h);
 
 #ifdef RELAY
-  p->printf_P(htmlMain, t, configuration.tempUnit == TEMP_UNIT_CELSIUS ? "C" : "F", h, (unsigned)RELAY_CLICK_DURATION_MS);
+  p->printf_P(htmlMain, (unsigned)RELAY_CLICK_DURATION_MS, t, configuration.tempUnit == TEMP_UNIT_CELSIUS ? "C" : "F", h);
 #else
   p->printf_P(htmlMain, t, configuration.tempUnit == TEMP_UNIT_CELSIUS ? "C" : "F", h);
 #endif
 #else
 #ifdef RELAY
-  p->printf_P(htmlMain, 0, "", 0, (unsigned)RELAY_CLICK_DURATION_MS);
+  p->printf_P(htmlMain, (unsigned)RELAY_CLICK_DURATION_MS, 0, "", 0);
 #else
   p->printf_P(htmlMain, 0, "", 0);
 #endif
 #endif
 }
+
+#ifdef RELAY
+void CWifiManager::publishHADiscovery() {
+  char discoveryTopic[255];
+  uint32_t deviceId = CONFIG_getDeviceId();
+  sprintf_P(discoveryTopic, "homeassistant/button/%u_relay/config", deviceId);
+
+  JsonDocument doc;
+  doc["name"] = "Relay";
+  doc["unique_id"] = String(deviceId) + "_relay";
+  doc["command_topic"] = mqttSubcribeTopicRelay;
+  doc["payload_press"] = "PRESS";
+  doc["retain"] = false;
+
+  JsonObject device = doc["device"].to<JsonObject>();
+  device["identifiers"][0] = String(deviceId);
+  device["name"] = configuration.name;
+  device["model"] = DEVICE_NAME;
+  device["manufacturer"] = "Custom";
+
+  mqtt.beginPublish(discoveryTopic, measureJson(doc), true);
+  BufferingPrint bufferedClient(mqtt, 32);
+  serializeJson(doc, bufferedClient);
+  bufferedClient.flush();
+  mqtt.endPublish();
+
+  Log.noticeln("Published HA discovery to '%s'", discoveryTopic);
+}
+#endif
 
 bool CWifiManager::ensureMQTTConnected() {
   if (!mqtt.connected() || mqtt.state() != MQTT_CONNECTED) {
@@ -898,6 +943,12 @@ bool CWifiManager::ensureMQTTConnected() {
         sprintf_P(mqttSubcribeTopicConfig, "%s/%u/config", configuration.mqttTopic, CONFIG_getDeviceId());
         bool r = mqtt.subscribe(mqttSubcribeTopicConfig);
         Log.noticeln("Subscribed for config changes to MQTT topic '%s' success = %T", mqttSubcribeTopicConfig, r);
+#ifdef RELAY
+        sprintf_P(mqttSubcribeTopicRelay, "%s/%u/relay/set", configuration.mqttTopic, CONFIG_getDeviceId());
+        bool rr = mqtt.subscribe(mqttSubcribeTopicRelay);
+        Log.noticeln("Subscribed for relay commands to MQTT topic '%s' success = %T", mqttSubcribeTopicRelay, rr);
+        publishHADiscovery();
+#endif
       } else {
         Log.warningln("MQTT reconnect failed, rc=%i", mqtt.state());
       }

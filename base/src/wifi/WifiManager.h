@@ -37,6 +37,9 @@ private:
   char softAP_SSID[32];
   char SSID[32];
   char mqttSubcribeTopicConfig[255];
+#ifdef RELAY
+  char mqttSubcribeTopicRelay[255];
+#endif
   unsigned long tsAPReboot;
   
   AsyncWebServer* server;
@@ -75,6 +78,9 @@ private:
 
   void mqttCallback(char *topic, uint8_t *payload, unsigned int);
   bool ensureMQTTConnected();
+#ifdef RELAY
+  void publishHADiscovery();
+#endif
 
 #ifdef OLED
   Adafruit_SSD1306 *display;

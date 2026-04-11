@@ -280,6 +280,23 @@ const char htmlDevice[] PROGMEM = R"=====(
 #ifdef RELAY
 const char htmlMain[] PROGMEM = R"=====(
       <article>
+        <header><h1>🔌 Relay</h1></header>
+        <button id="relayBtn" onclick="clickRelay(this)" style="width: 100%;">Click Relay</button>
+        <script>
+          function clickRelay(btn) {
+            btn.setAttribute('disabled', '');
+            btn.setAttribute('aria-busy', 'true');
+            fetch('relay_click', { method: 'POST' })
+              .finally(function() {
+                setTimeout(function() {
+                  btn.removeAttribute('disabled');
+                  btn.removeAttribute('aria-busy');
+                }, %u);
+              });
+          }
+        </script>
+      </article>
+      <article>
         <header class="grid">
           <h1>🌡️ Temperature</h1>
           <h1 style="text-align: right;"><kbd>%0.2f°%s</kbd></h1>
@@ -296,23 +313,6 @@ const char htmlMain[] PROGMEM = R"=====(
         <p>
           Graph goes here
         </p>
-      </article>
-      <article>
-        <header><h1>🔌 Relay</h1></header>
-        <button id="relayBtn" onclick="clickRelay(this)">Click Relay</button>
-        <script>
-          function clickRelay(btn) {
-            btn.setAttribute('disabled', '');
-            btn.setAttribute('aria-busy', 'true');
-            fetch('relay_click', { method: 'POST' })
-              .finally(function() {
-                setTimeout(function() {
-                  btn.removeAttribute('disabled');
-                  btn.removeAttribute('aria-busy');
-                }, %u);
-              });
-          }
-        </script>
       </article>
 )=====";
 #else
