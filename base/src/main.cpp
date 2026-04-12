@@ -73,7 +73,7 @@ void setup() {
   }
 
 #ifdef RF24_RADIO
-  rf24Manager = new CRF24Manager();
+  rf24Manager = new CRF24Manager(device);
 #endif
 
   Log.infoln("Initialized");

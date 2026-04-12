@@ -4,10 +4,14 @@
 
 #include "RF24Manager.h"
 #include "Configuration.h"
+#include "Utilities.h"
 
 static const uint8_t maxMessageSize = 32;
+static const uint8_t WH_WINDOW = 100;
+static const float   WH_EPSILON = 1e-5f;
 
-CRF24Manager::CRF24Manager() {
+CRF24Manager::CRF24Manager(ISensorProvider *sensorProvider)
+  : sensorProvider(sensorProvider) {
   radio = new RF24(RF24_CE_PIN, RF24_CSN_PIN);
 
   if (!radio->begin()) {
@@ -54,6 +58,7 @@ void CRF24Manager::handleMessage(const RF24Message &msg) {
     Log.warningln(F("RF24: unrecognized message (bad header)"));
     return;
   }
+
   int8_t remoteIdx = -1;
   for (uint8_t i = 0; i < RF24_REMOTES_COUNT; i++) {
     if (configuration.rf24_remotes[i].remoteId == msg.remoteId) {
@@ -65,9 +70,22 @@ void CRF24Manager::handleMessage(const RF24Message &msg) {
     Log.warningln(F("RF24: unknown remoteId=%u"), msg.remoteId);
     return;
   }
-  Log.infoln(F("RF24: remoteId=%u whCode=%.4f batteryVoltage=%.2fV seedState=[%u,%u,%u]"),
-    msg.remoteId, msg.whCode, msg.batteryVoltage,
-    configuration.rf24_remotes[remoteIdx].whState.x,
-    configuration.rf24_remotes[remoteIdx].whState.y,
-    configuration.rf24_remotes[remoteIdx].whState.z);
+
+  // Walk up to WH_WINDOW steps ahead from the stored state to find the transmitted code.
+  WichmannHillState candidate = configuration.rf24_remotes[remoteIdx].whState;
+  for (uint8_t step = 0; step < WH_WINDOW; step++) {
+    float code = wichmannHillNext(candidate);
+    if (fabsf(code - msg.whCode) < WH_EPSILON) {
+      Log.infoln(F("RF24: remoteId=%u accepted at step %u, battVoltage=%.2fV"),
+        msg.remoteId, step + 1, msg.batteryVoltage);
+      // Advance stored state to the matched position.
+      configuration.rf24_remotes[remoteIdx].whState = candidate;
+      EEPROM_saveConfig();
+      if (sensorProvider) sensorProvider->clickRelay();
+      return;
+    }
+  }
+
+  Log.warningln(F("RF24: remoteId=%u rejected — code not found in next %u steps"),
+    msg.remoteId, WH_WINDOW);
 }
