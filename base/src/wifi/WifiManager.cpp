@@ -533,6 +533,27 @@ void CWifiManager::handleRadio(AsyncWebServerRequest *request) {
       configuration.rf24_channel, configuration.rf24_data_rate,
       configuration.rf24_pa_level, configuration.rf24_pipe0_address);
 
+    char key[20];
+    for (uint8_t i = 0; i < RF24_REMOTES_COUNT; i++) {
+      snprintf(key, sizeof(key), "remote%u_id", i);
+      if (!request->hasArg(key)) continue;
+      configuration.rf24_remotes[i].remoteId = (uint8_t)atoi(request->arg(key).c_str());
+      snprintf(key, sizeof(key), "remote%u_x", i);
+      uint16_t x = (uint16_t)atoi(request->arg(key).c_str());
+      configuration.rf24_remotes[i].whState.x = (x >= 1 && x <= 30000) ? x : 1000;
+      snprintf(key, sizeof(key), "remote%u_y", i);
+      uint16_t y = (uint16_t)atoi(request->arg(key).c_str());
+      configuration.rf24_remotes[i].whState.y = (y >= 1 && y <= 30000) ? y : 2000;
+      snprintf(key, sizeof(key), "remote%u_z", i);
+      uint16_t z = (uint16_t)atoi(request->arg(key).c_str());
+      configuration.rf24_remotes[i].whState.z = (z >= 1 && z <= 30000) ? z : 3000;
+      Log.infoln("Remote %u: id=%u x=%u y=%u z=%u", i,
+        configuration.rf24_remotes[i].remoteId,
+        configuration.rf24_remotes[i].whState.x,
+        configuration.rf24_remotes[i].whState.y,
+        configuration.rf24_remotes[i].whState.z);
+    }
+
     EEPROM_saveConfig();
     request->redirect("radio");
     tMillis = millis();
@@ -560,9 +581,19 @@ void CWifiManager::handleRadio(AsyncWebServerRequest *request) {
     );
     AsyncResponseStream *response = request->beginResponseStream("text/html; charset=UTF-8");
     printHTMLTop(response);
-    response->printf_P(htmlRadio,
+    response->printf_P(htmlRadioTop,
       configuration.rf24_channel, rf24DataRate, rf24PaLevel,
       configuration.rf24_pipe0_address);
+    for (uint8_t i = 0; i < RF24_REMOTES_COUNT; i++) {
+      response->printf_P(htmlRadioRemote,
+        (unsigned)i + 1,
+        (unsigned)i, (unsigned)configuration.rf24_remotes[i].remoteId,
+        (unsigned)i, (unsigned)configuration.rf24_remotes[i].whState.x,
+        (unsigned)i, (unsigned)configuration.rf24_remotes[i].whState.y,
+        (unsigned)i, (unsigned)configuration.rf24_remotes[i].whState.z,
+        (unsigned)i);
+    }
+    response->print(FPSTR(htmlRadioBottom));
     printHTMLBottom(response);
     request->send(response);
   }

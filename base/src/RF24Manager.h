@@ -4,7 +4,20 @@
 #include "BaseManager.h"
 
 #define RF24_PAYLOAD_SIZE 32
-#define RF24_TARGET_MESSAGE "CLICK"
+#define RF24_MSG_MAGIC "RFCL"
+
+#pragma pack(push, 1)
+struct RF24Message {
+  uint8_t header[4];       // magic: RF24_MSG_MAGIC
+  uint8_t remoteId;        // remote device ID
+  float   whCode;          // Wichmann-Hill rolling code [0, 1)
+  // telemetry
+  float   batteryVoltage;  // remote battery voltage (V)
+  uint8_t reserved[19];    // reserved for future telemetry
+};
+#pragma pack(pop)
+
+static_assert(sizeof(RF24Message) == RF24_PAYLOAD_SIZE, "RF24Message size mismatch");
 
 class CRF24Manager : public CBaseManager {
 public:
@@ -16,5 +29,5 @@ public:
 private:
   RF24 *radio;
 
-  void handleMessage(const char *payload);
+  void handleMessage(const RF24Message &msg);
 };

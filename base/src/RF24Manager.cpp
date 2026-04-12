@@ -42,16 +42,32 @@ void CRF24Manager::loop() {
     return;
   }
 
-  char payload[RF24_PAYLOAD_SIZE + 1];
-  memset(payload, 0, sizeof(payload));
-  radio->read(payload, RF24_PAYLOAD_SIZE);
+  RF24Message msg;
+  memset(&msg, 0, sizeof(msg));
+  radio->read(&msg, sizeof(msg));
 
-  Log.infoln(F("RF24: received message: '%s'"), payload);
-  handleMessage(payload);
+  handleMessage(msg);
 }
 
-void CRF24Manager::handleMessage(const char *payload) {
-  if (strncmp(payload, RF24_TARGET_MESSAGE, RF24_PAYLOAD_SIZE) == 0) {
-    Log.infoln(F("RF24: success"));
+void CRF24Manager::handleMessage(const RF24Message &msg) {
+  if (memcmp(msg.header, RF24_MSG_MAGIC, 4) != 0) {
+    Log.warningln(F("RF24: unrecognized message (bad header)"));
+    return;
   }
+  int8_t remoteIdx = -1;
+  for (uint8_t i = 0; i < RF24_REMOTES_COUNT; i++) {
+    if (configuration.rf24_remotes[i].remoteId == msg.remoteId) {
+      remoteIdx = i;
+      break;
+    }
+  }
+  if (remoteIdx < 0) {
+    Log.warningln(F("RF24: unknown remoteId=%u"), msg.remoteId);
+    return;
+  }
+  Log.infoln(F("RF24: remoteId=%u whCode=%.4f batteryVoltage=%.2fV seedState=[%u,%u,%u]"),
+    msg.remoteId, msg.whCode, msg.batteryVoltage,
+    configuration.rf24_remotes[remoteIdx].whState.x,
+    configuration.rf24_remotes[remoteIdx].whState.y,
+    configuration.rf24_remotes[remoteIdx].whState.z);
 }

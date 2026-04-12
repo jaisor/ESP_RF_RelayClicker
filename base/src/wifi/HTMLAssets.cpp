@@ -231,7 +231,7 @@ const char htmlDevice[] PROGMEM = R"=====(
 )=====";
 
 #ifdef RF24_RADIO
-const char htmlRadio[] PROGMEM = R"=====(
+const char htmlRadioTop[] PROGMEM = R"=====(
       <h3>Radio Settings</h3>
       <form method='POST' action='radio' enctype='application/x-www-form-urlencoded' delay='8000'>
         <fieldset>
@@ -257,8 +257,43 @@ const char htmlRadio[] PROGMEM = R"=====(
             <sub><small>exactly 5 printable ASCII chars, avoid repeating patterns (e.g. UUUUU)</small></sub>
           </label>
         </fieldset>
+        <fieldset>
+          <legend>Remotes</legend>
+)=====";
+
+const char htmlRadioRemote[] PROGMEM = R"=====(
+          <fieldset>
+            <legend>Remote %u</legend>
+            <div class='grid'>
+              <label>ID (1-255)
+                <input type='number' name='remote%u_id' min='1' max='255' value='%u'>
+              </label>
+              <label>Seed X (1-30000)
+                <input type='number' name='remote%u_x' min='1' max='30000' value='%u'>
+              </label>
+              <label>Seed Y (1-30000)
+                <input type='number' name='remote%u_y' min='1' max='30000' value='%u'>
+              </label>
+              <label>Seed Z (1-30000)
+                <input type='number' name='remote%u_z' min='1' max='30000' value='%u'>
+              </label>
+            </div>
+            <button type='button' onclick='rndRemote(%u)'>&#x1F3B2; Randomize</button>
+          </fieldset>
+)=====";
+
+const char htmlRadioBottom[] PROGMEM = R"=====(
+        </fieldset>
         <button type='submit' value='Submit'>Submit...</button>
       </form>
+      <script>
+        function rndRemote(i) {
+          function rnd() { return Math.floor(Math.random() * 29999) + 1; }
+          document.querySelector('[name="remote'+i+'_x"]').value = rnd();
+          document.querySelector('[name="remote'+i+'_y"]').value = rnd();
+          document.querySelector('[name="remote'+i+'_z"]').value = rnd();
+        }
+      </script>
 )=====";
 #endif
 

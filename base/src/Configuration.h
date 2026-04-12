@@ -4,6 +4,7 @@
 #include <functional>
 #include <ArduinoLog.h>
 #include <StreamUtils.h>
+#include "Utilities.h"
 
 //#define DEBUG_MOCK_HP
 //#define DISABLE_LOGGING
@@ -101,6 +102,7 @@
   #define RF24_DATA_RATE RF24_250KBPS
   #define RF24_PA_LEVEL RF24_PA_HIGH
   #define RF24_PIPE0_ADDRESS "RFCL0"
+  #define RF24_REMOTES_COUNT 5
 #endif
 
 #define RELAY
@@ -166,6 +168,7 @@ struct configuration_t {
     uint8_t rf24_data_rate;
     uint8_t rf24_pa_level;
     char rf24_pipe0_address[6];
+    RF24Remote rf24_remotes[RF24_REMOTES_COUNT];
   #endif
 
   char name[128];

@@ -101,6 +101,12 @@ void EEPROM_loadConfig() {
       configuration.rf24_data_rate = RF24_DATA_RATE;
       configuration.rf24_pa_level = RF24_PA_LEVEL;
       strcpy(configuration.rf24_pipe0_address, RF24_PIPE0_ADDRESS);
+      for (uint8_t i = 0; i < RF24_REMOTES_COUNT; i++) {
+        configuration.rf24_remotes[i].remoteId   = i + 1;
+        configuration.rf24_remotes[i].whState.x  = (uint16_t)(1000 + i * 3000);
+        configuration.rf24_remotes[i].whState.y  = (uint16_t)(2000 + i * 3000);
+        configuration.rf24_remotes[i].whState.z  = (uint16_t)(3000 + i * 3000);
+      }
     #endif
 
     #ifdef VOLTAGE_SENSOR

@@ -13,3 +13,8 @@ struct WichmannHillState {
 // The seed components must each be in [1, 30000]; behaviour is undefined for
 // values outside that range.
 float wichmannHillNext(WichmannHillState &state);
+
+struct RF24Remote {
+  uint8_t          remoteId;
+  WichmannHillState whState;
+};
