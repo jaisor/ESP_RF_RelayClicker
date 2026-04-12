@@ -20,12 +20,10 @@ CRF24Manager::CRF24Manager() {
   radio->setPALevel(configuration.rf24_pa_level);
   radio->setChannel(configuration.rf24_channel);
   radio->setPayloadSize(maxMessageSize);
-  for (uint8_t i=0; i<6; i++) {
-    char a[6];
-    snprintf_P(a, 6, "%i%s", i, configuration.rf24_pipe_suffix);
-    Log.noticeln("Opening reading pipe %i on address '%s'", i, a);
-    radio->openReadingPipe(i, (uint8_t*)a);
-  }
+  Log.noticeln("RF24: channel=%u, dataRate=%u, paLevel=%u, pipe0='%s'",
+    configuration.rf24_channel, configuration.rf24_data_rate,
+    configuration.rf24_pa_level, configuration.rf24_pipe0_address);
+  radio->openReadingPipe(0, (uint8_t*)configuration.rf24_pipe0_address);
   radio->setRetries(15, 15);
   radio->setAutoAck(false);
   radio->startListening();

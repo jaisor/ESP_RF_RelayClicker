@@ -55,6 +55,7 @@ private:
   void handleWifi(AsyncWebServerRequest *request);
   void handleSensor(AsyncWebServerRequest *request);
   void handleDevice(AsyncWebServerRequest *request);
+  void handleRadio(AsyncWebServerRequest *request);
   void handleFactoryReset(AsyncWebServerRequest *request);
 #ifdef RELAY
   void handleRelayClick(AsyncWebServerRequest *request);

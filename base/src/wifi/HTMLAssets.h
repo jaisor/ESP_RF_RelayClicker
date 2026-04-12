@@ -7,6 +7,7 @@ extern const char htmlBottom[];
 extern const char htmlWifi[];
 extern const char htmlSensor[];
 extern const char htmlDevice[];
+extern const char htmlRadio[];
 extern const char htmlMain[];
 
 extern const char cssPico[];

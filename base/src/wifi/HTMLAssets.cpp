@@ -9,7 +9,7 @@ const char htmlTop[] PROGMEM = R"=====(
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="color-scheme" content="light dark" />
     <link rel="stylesheet" href="style.css" />
-    <title>%s - WiFi Climate Sensor</title>
+    <title>%s - RF Relay Clicker</title>
     <script>
       document.addEventListener("DOMContentLoaded", function() {
         document.querySelector("form").addEventListener("submit", function (event) {
@@ -48,7 +48,7 @@ const char htmlTop[] PROGMEM = R"=====(
         <ul><li>
           <hgroup>
             <h2><a href=".">🏠%s</a></h2>
-            <p>WiFi Climate Sensor</p>
+            <p>RF Relay Clicker</p>
           </hgroup>
         </li></ul>
         <ul><li>
@@ -57,6 +57,7 @@ const char htmlTop[] PROGMEM = R"=====(
             <ul dir="rtl">
               <li><a href="wifi">WiFi 🛜</a></li>
               <li><a href="sensor">Sensor 🌡️</a></li>
+              <li><a href="radio">Radio 📡</a></li>
               <li><a href="device">Device 📟</a></li>
             </ul>
           </details>
@@ -200,7 +201,6 @@ const char htmlSensor[] PROGMEM = R"=====(
 )=====";
 #endif
 
-#ifdef RF24_RADIO
 const char htmlDevice[] PROGMEM = R"=====(
       <h3>Device Settings</h3>
       <form method='POST' action='device' enctype='application/x-www-form-urlencoded' delay='8000'>
@@ -225,7 +225,16 @@ const char htmlDevice[] PROGMEM = R"=====(
             MQTT topic
             <input type='text' id='mqttTopic' name='mqttTopic' value='%s'>
           </label>
-          <br/>
+        </fieldset>
+        <button type='submit' value='Submit'>Submit...</button>
+      </form>
+)=====";
+
+#ifdef RF24_RADIO
+const char htmlRadio[] PROGMEM = R"=====(
+      <h3>Radio Settings</h3>
+      <form method='POST' action='radio' enctype='application/x-www-form-urlencoded' delay='8000'>
+        <fieldset>
           <label>
             RF24 Channel (0-125)
             <input type='number' id='rf24Channel' name='rf24Channel' min='0' max='125' value='%u'>
@@ -242,34 +251,10 @@ const char htmlDevice[] PROGMEM = R"=====(
               %s
             </select>
           </label>
-        </fieldset>
-        <button type='submit' value='Submit'>Submit...</button>
-      </form>
-)=====";
-#else
-const char htmlDevice[] PROGMEM = R"=====(
-      <h3>Device Settings</h3>
-      <form method='POST' action='device' enctype='application/x-www-form-urlencoded' delay='8000'>
-        <fieldset>
           <label>
-            LED enabled
-            <input name='ledEnabled' id='ledEnabled' type='checkbox' role='switch' %s /><br/>
-            <sub><small>disable to reduce light noise in bedrooms</small></sub>
-          </label>
-          <br/>
-          <label>
-            Device name
-            <input type='text' id='deviceName' name='deviceName' value='%s'>
-          </label>
-          <label>MQTT server
-            <input type='text' id='mqttServer' name='mqttServer' value='%s'>
-          </label>
-          <label>MQTT port
-            <input type='text' id='mqttPort' name='mqttPort' value='%u'>
-          </label>
-          <label>
-            MQTT topic
-            <input type='text' id='mqttTopic' name='mqttTopic' value='%s'>
+            Pipe 0 Address (5 characters)
+            <input type='text' id='rf24Pipe0Address' name='rf24Pipe0Address' maxlength='5' minlength='5' value='%s'>
+            <sub><small>exactly 5 printable ASCII chars, avoid repeating patterns (e.g. UUUUU)</small></sub>
           </label>
         </fieldset>
         <button type='submit' value='Submit'>Submit...</button>

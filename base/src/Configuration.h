@@ -68,7 +68,7 @@
   #endif
 #endif
 
-#define TEMP_SENSOR
+//#define TEMP_SENSOR
 #ifdef TEMP_SENSOR
   #define TEMP_UNIT_CELSIUS 0
   #define TEMP_UNIT_FAHRENHEIT 1
@@ -100,7 +100,7 @@
   #define RF24_CHANNEL 76
   #define RF24_DATA_RATE RF24_250KBPS
   #define RF24_PA_LEVEL RF24_PA_HIGH
-  #define RF24_PIPE_SUFFIX "RFCL"
+  #define RF24_PIPE0_ADDRESS "RFCL0"
 #endif
 
 #define RELAY
@@ -165,8 +165,7 @@ struct configuration_t {
     uint8_t rf24_channel;
     uint8_t rf24_data_rate;
     uint8_t rf24_pa_level;
-    char rf24_pipe_suffix[5];
-    char rf24_pipe_mqttTopic[6][128];
+    char rf24_pipe0_address[6];
   #endif
 
   char name[128];

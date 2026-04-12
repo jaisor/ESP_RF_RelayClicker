@@ -138,6 +138,9 @@ void CWifiManager::listen() {
   server->on("/wifi", HTTP_GET | HTTP_POST, (ArRequestHandlerFunction)std::bind(&CWifiManager::handleWifi, this, std::placeholders::_1));
   server->on("/sensor", HTTP_GET | HTTP_POST, (ArRequestHandlerFunction)std::bind(&CWifiManager::handleSensor, this, std::placeholders::_1));
   server->on("/device", HTTP_GET | HTTP_POST, (ArRequestHandlerFunction)std::bind(&CWifiManager::handleDevice, this, std::placeholders::_1));
+#ifdef RF24_RADIO
+  server->on("/radio", HTTP_GET | HTTP_POST, (ArRequestHandlerFunction)std::bind(&CWifiManager::handleRadio, this, std::placeholders::_1));
+#endif
   //
 #ifdef RELAY
   server->on("/relay_click", HTTP_POST, (ArRequestHandlerFunction)std::bind(&CWifiManager::handleRelayClick, this, std::placeholders::_1));
@@ -497,15 +500,6 @@ void CWifiManager::handleDevice(AsyncWebServerRequest *request) {
     mqttTopic.toCharArray(configuration.mqttTopic, sizeof(configuration.mqttTopic));
     Log.infoln("MQTT Topic: %s", mqttTopic);
 
-    #ifdef RF24_RADIO
-    configuration.rf24_channel = atoi(request->arg("rf24Channel").c_str());
-    configuration.rf24_data_rate = atoi(request->arg("rf24DataRate").c_str());
-    configuration.rf24_pa_level = atoi(request->arg("rf24PaLevel").c_str());
-    Log.infoln("RF24 Channel: %u", configuration.rf24_channel);
-    Log.infoln("RF24 Data Rate: %u", configuration.rf24_data_rate);
-    Log.infoln("RF24 PA Level: %u", configuration.rf24_pa_level);
-    #endif
-
     EEPROM_saveConfig();
     
     request->redirect("device");
@@ -515,7 +509,35 @@ void CWifiManager::handleDevice(AsyncWebServerRequest *request) {
 
     AsyncResponseStream *response = request->beginResponseStream("text/html; charset=UTF-8");
     printHTMLTop(response);
-    #ifdef RF24_RADIO
+    response->printf_P(htmlDevice, configuration.ledEnabled ? "checked" : "",
+      configuration.name,
+      configuration.mqttServer, configuration.mqttPort, configuration.mqttTopic);
+    printHTMLBottom(response);
+    request->send(response);
+  }
+  intLEDOff();
+}
+
+#ifdef RF24_RADIO
+void CWifiManager::handleRadio(AsyncWebServerRequest *request) {
+  Log.traceln("handleRadio: %s", request->methodToString());
+  intLEDOn();
+
+  if (request->method() == HTTP_POST) {
+    configuration.rf24_channel = atoi(request->arg("rf24Channel").c_str());
+    configuration.rf24_data_rate = atoi(request->arg("rf24DataRate").c_str());
+    configuration.rf24_pa_level = atoi(request->arg("rf24PaLevel").c_str());
+    String pipe0Addr = request->arg("rf24Pipe0Address");
+    pipe0Addr.toCharArray(configuration.rf24_pipe0_address, sizeof(configuration.rf24_pipe0_address));
+    Log.infoln("RF24 Channel: %u, DataRate: %u, PA: %u, Addr: %s",
+      configuration.rf24_channel, configuration.rf24_data_rate,
+      configuration.rf24_pa_level, configuration.rf24_pipe0_address);
+
+    EEPROM_saveConfig();
+    request->redirect("radio");
+    tMillis = millis();
+    rebootNeeded = true;
+  } else {
     char rf24DataRate[256];
     snprintf_P(rf24DataRate, sizeof(rf24DataRate), PSTR("\
       <option %s value='0'>1 Mbps</option>\
@@ -536,20 +558,17 @@ void CWifiManager::handleDevice(AsyncWebServerRequest *request) {
       configuration.rf24_pa_level == 2 ? "selected" : "",
       configuration.rf24_pa_level == 3 ? "selected" : ""
     );
-    response->printf_P(htmlDevice, configuration.ledEnabled ? "checked" : "",
-      configuration.name,
-      configuration.mqttServer, configuration.mqttPort, configuration.mqttTopic,
-      configuration.rf24_channel, rf24DataRate, rf24PaLevel);
-    #else
-    response->printf_P(htmlDevice, configuration.ledEnabled ? "checked" : "",
-      configuration.name,
-      configuration.mqttServer, configuration.mqttPort, configuration.mqttTopic);
-    #endif
+    AsyncResponseStream *response = request->beginResponseStream("text/html; charset=UTF-8");
+    printHTMLTop(response);
+    response->printf_P(htmlRadio,
+      configuration.rf24_channel, rf24DataRate, rf24PaLevel,
+      configuration.rf24_pipe0_address);
     printHTMLBottom(response);
     request->send(response);
   }
   intLEDOff();
 }
+#endif
 
 #ifdef RELAY
 void CWifiManager::handleRelayClick(AsyncWebServerRequest *request) {
@@ -793,7 +812,7 @@ bool CWifiManager::updateSensorJson() {
   sensorJson["rf24_channel"] = configuration.rf24_channel;
   sensorJson["rf24_data_rate"] = configuration.rf24_data_rate;
   sensorJson["rf24_pa_level"] = configuration.rf24_pa_level;
-  sensorJson["rf24_pipe_suffix"] = configuration.rf24_pipe_suffix;
+  sensorJson["rf24_pipe0_address"] = configuration.rf24_pipe0_address;
   sensorJson["rf_msq_queue_size"] = messageQueue->getQueue()->size();
 #endif
 
@@ -882,7 +901,6 @@ void CWifiManager::printHTMLBottom(Print *p) {
 }
 
 void CWifiManager::printHTMLMain(Print *p) {
-
 #ifdef TEMP_SENSOR
   float t = sensorProvider->getTemperature(NULL);
   float h = sensorProvider->getHumidity(NULL);
@@ -898,7 +916,7 @@ void CWifiManager::printHTMLMain(Print *p) {
 #endif
 #else
 #ifdef RELAY
-  p->printf_P(htmlMain, (unsigned)RELAY_CLICK_DURATION_MS, 0, "", 0);
+  p->printf_P(htmlMain, (unsigned)RELAY_CLICK_DURATION_MS, (float)0, " ", (float)0);
 #else
   p->printf_P(htmlMain, 0, "", 0);
 #endif
