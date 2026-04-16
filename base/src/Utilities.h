@@ -15,6 +15,7 @@ struct WichmannHillState {
 float wichmannHillNext(WichmannHillState &state);
 
 struct RF24Remote {
-  uint8_t          remoteId;
+  uint8_t           remoteId;
   WichmannHillState whState;
+  uint8_t           enabled;
 };

@@ -22,6 +22,12 @@ CDevice::CDevice()
   Log.infoln(F("Relay pin %d initialized LOW"), RELAY_PIN);
   #endif
 
+  #ifdef SERVO
+  _servo.attach(SERVO_PIN);
+  _servo.write(SERVO_MIN_ANGLE);
+  Log.infoln(F("Servo pin %d initialized to %d deg"), SERVO_PIN, SERVO_MIN_ANGLE);
+  #endif
+
   #ifdef CONFIG_IDF_TARGET_ESP32C3
     if (configuration.tempSensor!=TEMP_SENSOR_DS18B20) {
       // ESP32C3 uses GPIO 6,7 for SDA,SCL - see https://wiki.seeedstudio.com/XIAO_ESP32C3_Getting_Started/
@@ -158,10 +164,28 @@ CDevice::~CDevice() {
 void CDevice::loop() {
 
   #ifdef RELAY
-  if (tRelayClick > 0 && millis() - tRelayClick >= RELAY_CLICK_DURATION_MS) {
-    digitalWrite(RELAY_PIN, LOW);
-    tRelayClick = 0;
-    Log.infoln(F("Relay restored LOW"));
+  if (tRelayClick > 0) {
+    unsigned long elapsed = millis() - tRelayClick;
+    #ifdef SERVO
+    {
+      int angle;
+      if (elapsed < RELAY_CLICK_DURATION_MS / 2) {
+        angle = map(elapsed, 0, RELAY_CLICK_DURATION_MS / 2, SERVO_MIN_ANGLE, SERVO_MAX_ANGLE);
+      } else {
+        angle = map(elapsed, RELAY_CLICK_DURATION_MS / 2, RELAY_CLICK_DURATION_MS, SERVO_MAX_ANGLE, SERVO_MIN_ANGLE);
+      }
+      angle = constrain(angle, SERVO_MIN_ANGLE, SERVO_MAX_ANGLE);
+      _servo.write(angle);
+    }
+    #endif
+    if (elapsed >= RELAY_CLICK_DURATION_MS) {
+      digitalWrite(RELAY_PIN, LOW);
+      tRelayClick = 0;
+      Log.infoln(F("Relay restored LOW"));
+      #ifdef SERVO
+      _servo.write(SERVO_MIN_ANGLE);
+      #endif
+    }
   }
   #endif
 
@@ -338,6 +362,9 @@ uint16_t CDevice::getVoltageADC(bool *current) {
 void CDevice::clickRelay() {
   Log.infoln(F("Relay click: going HIGH for %ums"), RELAY_CLICK_DURATION_MS);
   digitalWrite(RELAY_PIN, HIGH);
+  #ifdef SERVO
+  _servo.write(SERVO_MIN_ANGLE);
+  #endif
   tRelayClick = millis();
 }
 #endif

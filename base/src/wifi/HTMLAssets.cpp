@@ -269,14 +269,17 @@ const char htmlRadioRemote[] PROGMEM = R"=====(
                 <input type='number' name='remote%u_id' min='1' max='255' value='%u'>
               </label>
               <label>Seed X (1-30000)
-                <input type='number' name='remote%u_x' min='1' max='30000' value='%u'>
+                <input type='number' name='remote%u_x' min='0' max='30000' value='%u'>
               </label>
               <label>Seed Y (1-30000)
-                <input type='number' name='remote%u_y' min='1' max='30000' value='%u'>
+                <input type='number' name='remote%u_y' min='0' max='30000' value='%u'>
               </label>
               <label>Seed Z (1-30000)
-                <input type='number' name='remote%u_z' min='1' max='30000' value='%u'>
+                <input type='number' name='remote%u_z' min='0' max='30000' value='%u'>
               </label>
+            </div>
+            <div>
+              <label><input type='checkbox' name='remote%u_enabled' value='1' %s> Enabled</label>
             </div>
             <button type='button' onclick='rndRemote(%u)'>&#x1F3B2; Randomize</button>
           </fieldset>

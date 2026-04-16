@@ -21,6 +21,16 @@ struct RF24Message {
 
 static_assert(sizeof(RF24Message) == RF24_PAYLOAD_SIZE, "RF24Message size mismatch");
 
+struct RF24Stats {
+  uint32_t clicks[RF24_REMOTES_COUNT];
+  uint32_t rejects[RF24_REMOTES_COUNT];
+  uint32_t unknownRemoteId;
+  uint32_t unknownMsg;
+};
+
+extern RF24Stats rf24Stats;
+void RF24_resetStats();
+
 class CRF24Manager : public CBaseManager {
 public:
   CRF24Manager(ISensorProvider *sensorProvider);

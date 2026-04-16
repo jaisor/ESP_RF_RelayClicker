@@ -10,6 +10,12 @@ static const uint8_t maxMessageSize = 32;
 static const uint8_t WH_WINDOW = 100;
 static const float   WH_EPSILON = 1e-5f;
 
+RF24Stats rf24Stats = {};
+
+void RF24_resetStats() {
+  memset(&rf24Stats, 0, sizeof(rf24Stats));
+}
+
 CRF24Manager::CRF24Manager(ISensorProvider *sensorProvider)
   : sensorProvider(sensorProvider) {
   radio = new RF24(RF24_CE_PIN, RF24_CSN_PIN);
@@ -55,6 +61,7 @@ void CRF24Manager::loop() {
 
 void CRF24Manager::handleMessage(const RF24Message &msg) {
   if (memcmp(msg.header, RF24_MSG_MAGIC, 4) != 0) {
+    rf24Stats.unknownMsg++;
     Log.warningln(F("RF24: unrecognized message (bad header)"));
     return;
   }
@@ -67,7 +74,14 @@ void CRF24Manager::handleMessage(const RF24Message &msg) {
     }
   }
   if (remoteIdx < 0) {
+    rf24Stats.unknownRemoteId++;
     Log.warningln(F("RF24: unknown remoteId=%u"), msg.remoteId);
+    return;
+  }
+
+  if (!configuration.rf24_remotes[remoteIdx].enabled) {
+    rf24Stats.rejects[remoteIdx]++;
+    Log.warningln(F("RF24: remoteId=%u is disabled, rejecting"), msg.remoteId);
     return;
   }
 
@@ -81,11 +95,13 @@ void CRF24Manager::handleMessage(const RF24Message &msg) {
       // Advance stored state to the matched position.
       configuration.rf24_remotes[remoteIdx].whState = candidate;
       EEPROM_saveConfig();
+      rf24Stats.clicks[remoteIdx]++;
       if (sensorProvider) sensorProvider->clickRelay();
       return;
     }
   }
 
+  rf24Stats.rejects[remoteIdx]++;
   Log.warningln(F("RF24: remoteId=%u rejected — code not found in next %u steps"),
     msg.remoteId, WH_WINDOW);
 }

@@ -91,6 +91,9 @@
   #if defined(CONFIG_IDF_TARGET_ESP32C3)
     #define RF24_CE_PIN  GPIO_NUM_4
     #define RF24_CSN_PIN GPIO_NUM_5
+  #elif defined(CONFIG_IDF_TARGET_ESP32S3)
+    #define RF24_CE_PIN  GPIO_NUM_4
+    #define RF24_CSN_PIN GPIO_NUM_5
   #elif defined(ESP32)
     #define RF24_CE_PIN  4
     #define RF24_CSN_PIN 15
@@ -113,6 +116,17 @@
     #define RELAY_PIN 5
   #endif
   #define RELAY_CLICK_DURATION_MS 500
+#endif
+
+#define SERVO
+#ifdef SERVO
+  #define SERVO_MIN_ANGLE 0
+  #define SERVO_MAX_ANGLE 180
+  #if defined(ESP8266)
+    #define SERVO_PIN D3  // GPIO0
+  #elif defined(ESP32) || defined(CONFIG_IDF_TARGET_ESP32C3) || defined(CONFIG_IDF_TARGET_ESP32S3)
+    #define SERVO_PIN 3
+  #endif
 #endif
 
 //#define OLED

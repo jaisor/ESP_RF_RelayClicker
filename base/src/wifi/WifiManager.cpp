@@ -13,6 +13,16 @@
 #include "Configuration.h"
 #include "wifi/WifiManager.h"
 #include "wifi/HTMLAssets.h"
+#ifdef RF24_RADIO
+struct RF24Stats {
+  uint32_t clicks[RF24_REMOTES_COUNT];
+  uint32_t rejects[RF24_REMOTES_COUNT];
+  uint32_t unknownRemoteId;
+  uint32_t unknownMsg;
+};
+extern RF24Stats rf24Stats;
+void RF24_resetStats();
+#endif
 
 #define MAX_CONNECT_TIMEOUT_MS 15000 // 10 seconds to connect before creating its own AP
 #define POST_UPDATE_INTERVAL 300000 // Every 5 min
@@ -330,7 +340,7 @@ void CWifiManager::handleRoot(AsyncWebServerRequest *request) {
   Log.traceln("handleRoot");
   intLEDOn();
 
-  AsyncResponseStream *response = request->beginResponseStream("text/html; charset=UTF-8");
+  AsyncResponseStream *response = request->beginResponseStream("text/html; charset=UTF-8", 2048);
   printHTMLTop(response);
   printHTMLMain(response);
   printHTMLBottom(response);
@@ -349,7 +359,7 @@ void CWifiManager::handleWifi(AsyncWebServerRequest *request) {
     String wifiPowerStr = request->arg("wifiPower");
     int wifiPower = wifiPowerStr.length() > 0 ? wifiPowerStr.toInt() : 78;
 
-    AsyncResponseStream *response = request->beginResponseStream("text/html; charset=UTF-8");
+    AsyncResponseStream *response = request->beginResponseStream("text/html; charset=UTF-8", 2048);
 
     printHTMLTop(response);
     response->printf("<p>Connecting to '%s' ... see you on the other side!</p>", ssid.c_str());
@@ -371,7 +381,7 @@ void CWifiManager::handleWifi(AsyncWebServerRequest *request) {
     tMillis = millis();
     rebootNeeded = true;
   } else {
-    AsyncResponseStream *response = request->beginResponseStream("text/html; charset=UTF-8");
+    AsyncResponseStream *response = request->beginResponseStream("text/html; charset=UTF-8", 2048);
     printHTMLTop(response);
     response->printf_P(htmlWifi);
     printHTMLBottom(response);
@@ -447,7 +457,7 @@ void CWifiManager::handleSensor(AsyncWebServerRequest *request) {
       t = t * 1.8 + 32;
     }
 
-    AsyncResponseStream *response = request->beginResponseStream("text/html; charset=UTF-8");
+    AsyncResponseStream *response = request->beginResponseStream("text/html; charset=UTF-8", 2048);
     printHTMLTop(response);
     response->printf_P(htmlSensor, tempSensor, tempUnit,
       t, (configuration.tempUnit == TEMP_UNIT_CELSIUS ? "C" : (configuration.tempUnit == TEMP_UNIT_FAHRENHEIT ? "F" : "" )),
@@ -460,7 +470,7 @@ void CWifiManager::handleSensor(AsyncWebServerRequest *request) {
       configuration.voltageDivider
     );
     #else
-    AsyncResponseStream *response = request->beginResponseStream("text/html; charset=UTF-8");
+    AsyncResponseStream *response = request->beginResponseStream("text/html; charset=UTF-8", 2048);
     printHTMLTop(response);
     response->printf_P(htmlSensor, 
       sensorProvider->getVoltage(NULL), sensorProvider->getVoltageADC(NULL),
@@ -507,7 +517,7 @@ void CWifiManager::handleDevice(AsyncWebServerRequest *request) {
     rebootNeeded = true;
   } else {
 
-    AsyncResponseStream *response = request->beginResponseStream("text/html; charset=UTF-8");
+    AsyncResponseStream *response = request->beginResponseStream("text/html; charset=UTF-8", 2048);
     printHTMLTop(response);
     response->printf_P(htmlDevice, configuration.ledEnabled ? "checked" : "",
       configuration.name,
@@ -540,18 +550,21 @@ void CWifiManager::handleRadio(AsyncWebServerRequest *request) {
       configuration.rf24_remotes[i].remoteId = (uint8_t)atoi(request->arg(key).c_str());
       snprintf(key, sizeof(key), "remote%u_x", i);
       uint16_t x = (uint16_t)atoi(request->arg(key).c_str());
-      configuration.rf24_remotes[i].whState.x = (x >= 1 && x <= 30000) ? x : 1000;
+      configuration.rf24_remotes[i].whState.x = (x <= 30000) ? x : 0;
       snprintf(key, sizeof(key), "remote%u_y", i);
       uint16_t y = (uint16_t)atoi(request->arg(key).c_str());
-      configuration.rf24_remotes[i].whState.y = (y >= 1 && y <= 30000) ? y : 2000;
+      configuration.rf24_remotes[i].whState.y = (y <= 30000) ? y : 0;
       snprintf(key, sizeof(key), "remote%u_z", i);
       uint16_t z = (uint16_t)atoi(request->arg(key).c_str());
-      configuration.rf24_remotes[i].whState.z = (z >= 1 && z <= 30000) ? z : 3000;
-      Log.infoln("Remote %u: id=%u x=%u y=%u z=%u", i,
+      configuration.rf24_remotes[i].whState.z = (z <= 30000) ? z : 0;
+      snprintf(key, sizeof(key), "remote%u_enabled", i);
+      configuration.rf24_remotes[i].enabled = request->hasArg(key) ? 1 : 0;
+      Log.infoln("Remote %u: id=%u x=%u y=%u z=%u enabled=%u", i,
         configuration.rf24_remotes[i].remoteId,
         configuration.rf24_remotes[i].whState.x,
         configuration.rf24_remotes[i].whState.y,
-        configuration.rf24_remotes[i].whState.z);
+        configuration.rf24_remotes[i].whState.z,
+        configuration.rf24_remotes[i].enabled);
     }
 
     EEPROM_saveConfig();
@@ -579,7 +592,7 @@ void CWifiManager::handleRadio(AsyncWebServerRequest *request) {
       configuration.rf24_pa_level == 2 ? "selected" : "",
       configuration.rf24_pa_level == 3 ? "selected" : ""
     );
-    AsyncResponseStream *response = request->beginResponseStream("text/html; charset=UTF-8");
+    AsyncResponseStream *response = request->beginResponseStream("text/html; charset=UTF-8", 4096);
     printHTMLTop(response);
     response->printf_P(htmlRadioTop,
       configuration.rf24_channel, rf24DataRate, rf24PaLevel,
@@ -591,6 +604,8 @@ void CWifiManager::handleRadio(AsyncWebServerRequest *request) {
         (unsigned)i, (unsigned)configuration.rf24_remotes[i].whState.x,
         (unsigned)i, (unsigned)configuration.rf24_remotes[i].whState.y,
         (unsigned)i, (unsigned)configuration.rf24_remotes[i].whState.z,
+        (unsigned)i,
+        configuration.rf24_remotes[i].enabled ? "checked" : "",
         (unsigned)i);
     }
     response->print(FPSTR(htmlRadioBottom));
@@ -782,6 +797,10 @@ bool CWifiManager::postSensorUpdate() {
   serializeJson(sensorJson, jsonStr);
   Log.noticeln("Sent '%s' json to MQTT topic '%s'", jsonStr.c_str(), topic);
 
+#ifdef RF24_RADIO
+  RF24_resetStats();
+#endif
+
   intLEDOff();
   return true;
 }
@@ -844,6 +863,15 @@ bool CWifiManager::updateSensorJson() {
   sensorJson["rf24_data_rate"] = configuration.rf24_data_rate;
   sensorJson["rf24_pa_level"] = configuration.rf24_pa_level;
   sensorJson["rf24_pipe0_address"] = configuration.rf24_pipe0_address;
+  sensorJson["rf24_unknown_msg"] = rf24Stats.unknownMsg;
+  sensorJson["rf24_unknown_remote_id"] = rf24Stats.unknownRemoteId;
+  char key[32];
+  for (uint8_t i = 0; i < RF24_REMOTES_COUNT; i++) {
+    snprintf(key, sizeof(key), "rf24_clicks_remote_%u", i);
+    sensorJson[key] = rf24Stats.clicks[i];
+    snprintf(key, sizeof(key), "rf24_rejects_remote_%u", i);
+    sensorJson[key] = rf24Stats.rejects[i];
+  }
 #endif
 
   JsonDocument cfg = sensorProvider->getDeviceSettings();

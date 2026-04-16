@@ -13,6 +13,14 @@
 #include <DHT_U.h>
 #include <Adafruit_AHTX0.h>
 
+#ifdef SERVO
+  #if defined(ESP8266)
+    #include <Servo.h>
+  #else
+    #include <ESP32Servo.h>
+  #endif
+#endif
+
 #ifdef OLED
   #include <Adafruit_SSD1306.h>
   #include <Adafruit_GFX.h>
@@ -58,6 +66,10 @@ private:
 
   #ifdef RELAY
   unsigned long tRelayClick;
+  #endif
+
+  #ifdef SERVO
+  Servo _servo;
   #endif
 
   float temperature, humidity, baro_pressure;
