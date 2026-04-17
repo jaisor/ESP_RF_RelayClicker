@@ -38,6 +38,9 @@ public:
 
   virtual bool isSensorReady() { return sensorReady; };
   virtual void clickRelay();
+  #ifdef SERVO
+  void sweepServo();
+  #endif
 
   #ifdef TEMP_SENSOR
   virtual float getTemperature(bool *current);
@@ -70,6 +73,7 @@ private:
 
   #ifdef SERVO
   Servo _servo;
+  unsigned long tServoStart;
   #endif
 
   float temperature, humidity, baro_pressure;

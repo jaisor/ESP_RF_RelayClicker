@@ -122,6 +122,7 @@
 #ifdef SERVO
   #define SERVO_MIN_ANGLE 0
   #define SERVO_MAX_ANGLE 180
+  #define SERVO_SWEEP_DURATION_MS 500  // time to sweep one direction; total move = 2x
   #if defined(ESP8266)
     #define SERVO_PIN D3  // GPIO0
   #elif defined(ESP32) || defined(CONFIG_IDF_TARGET_ESP32C3) || defined(CONFIG_IDF_TARGET_ESP32S3)

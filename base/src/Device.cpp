@@ -23,6 +23,7 @@ CDevice::CDevice()
   #endif
 
   #ifdef SERVO
+  tServoStart = 0;
   _servo.attach(SERVO_PIN);
   _servo.write(SERVO_MIN_ANGLE);
   Log.infoln(F("Servo pin %d initialized to %d deg"), SERVO_PIN, SERVO_MIN_ANGLE);
@@ -164,27 +165,28 @@ CDevice::~CDevice() {
 void CDevice::loop() {
 
   #ifdef RELAY
-  if (tRelayClick > 0) {
-    unsigned long elapsed = millis() - tRelayClick;
-    #ifdef SERVO
-    {
-      int angle;
-      if (elapsed < RELAY_CLICK_DURATION_MS / 2) {
-        angle = map(elapsed, 0, RELAY_CLICK_DURATION_MS / 2, SERVO_MIN_ANGLE, SERVO_MAX_ANGLE);
-      } else {
-        angle = map(elapsed, RELAY_CLICK_DURATION_MS / 2, RELAY_CLICK_DURATION_MS, SERVO_MAX_ANGLE, SERVO_MIN_ANGLE);
-      }
-      angle = constrain(angle, SERVO_MIN_ANGLE, SERVO_MAX_ANGLE);
-      _servo.write(angle);
-    }
-    #endif
-    if (elapsed >= RELAY_CLICK_DURATION_MS) {
-      digitalWrite(RELAY_PIN, LOW);
-      tRelayClick = 0;
-      Log.infoln(F("Relay restored LOW"));
-      #ifdef SERVO
+  if (tRelayClick > 0 && millis() - tRelayClick >= RELAY_CLICK_DURATION_MS) {
+    digitalWrite(RELAY_PIN, LOW);
+    tRelayClick = 0;
+    Log.infoln(F("Relay restored LOW"));
+  }
+  #endif
+
+  #ifdef SERVO
+  if (tServoStart > 0) {
+    unsigned long elapsed = millis() - tServoStart;
+    unsigned long total = SERVO_SWEEP_DURATION_MS * 2;
+    if (elapsed >= total) {
       _servo.write(SERVO_MIN_ANGLE);
-      #endif
+      tServoStart = 0;
+    } else {
+      int angle;
+      if (elapsed < SERVO_SWEEP_DURATION_MS) {
+        angle = map(elapsed, 0, SERVO_SWEEP_DURATION_MS, SERVO_MIN_ANGLE, SERVO_MAX_ANGLE);
+      } else {
+        angle = map(elapsed, SERVO_SWEEP_DURATION_MS, total, SERVO_MAX_ANGLE, SERVO_MIN_ANGLE);
+      }
+      _servo.write(constrain(angle, SERVO_MIN_ANGLE, SERVO_MAX_ANGLE));
     }
   }
   #endif
@@ -362,10 +364,18 @@ uint16_t CDevice::getVoltageADC(bool *current) {
 void CDevice::clickRelay() {
   Log.infoln(F("Relay click: going HIGH for %ums"), RELAY_CLICK_DURATION_MS);
   digitalWrite(RELAY_PIN, HIGH);
-  #ifdef SERVO
-  _servo.write(SERVO_MIN_ANGLE);
-  #endif
   tRelayClick = millis();
+  #ifdef SERVO
+  sweepServo();
+  #endif
+}
+#endif
+
+#ifdef SERVO
+void CDevice::sweepServo() {
+  Log.infoln(F("Servo sweep started"));
+  _servo.write(SERVO_MIN_ANGLE);
+  tServoStart = millis();
 }
 #endif
 
